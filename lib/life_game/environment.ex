@@ -13,6 +13,13 @@ defmodule LifeGame.Environment do
   @type cell() :: {non_neg_integer(), non_neg_integer()}
   @type status() :: 1 | 0
 
+  defguardp is_cell(cell)
+            when is_tuple(cell) and
+                   cell |> elem(0) |> is_integer() and
+                   cell |> elem(1) |> is_integer()
+
+  defguardp is_status(status) when status in [@alive, @dead]
+
   @doc """
   Creates and returns a new Environment with the given width and height.
   """
@@ -25,13 +32,21 @@ defmodule LifeGame.Environment do
   Evaluates the given `Environment` and returns the next iteration.
   """
   @spec tick(Environment.t()) :: Environment.t()
-  def tick(seed)
-
   def tick(seed) do
-    seed
+    Enum.reduce(seed, seed, fn {{cell, status}, environment} ->
+      # TODO: start here
+      environment
+    end)
   end
 
-  def status_at(%Environment{cells: cells}, cell), do: Map.get(cells, cell, @dead)
+  def get_status(%Environment{cells: cells}, cell) when is_cell(cell) do
+    Map.get(cells, cell, @dead)
+  end
+
+  def put_status(%Environment{cells: cells} = environment, cell, status)
+      when is_cell(cell) and is_status(status) do
+    %{environment | cells: Map.put(cells, cell, status)}
+  end
 end
 
 defimpl Inspect, for: LifeGame.Environment do
@@ -40,7 +55,7 @@ defimpl Inspect, for: LifeGame.Environment do
 
   def inspect(%Environment{width: width} = environment, opts) do
     environment
-    |> Enum.map(&to_doc(&1, opts))
+    |> Enum.map(fn {_cell, status} -> to_doc(status, opts) end)
     |> Enum.chunk_every(width)
     |> Enum.intersperse(["\n"])
     |> Enum.concat()
@@ -81,23 +96,23 @@ defimpl Enumerable, for: LifeGame.Environment do
 
   # The actual reducer. Gets the cell and the status, then passes status to fun
   def reduce({environment, index}, {:cont, acc}, fun) do
-    cell = build_cell(environment, index)
-    status = Environment.status_at(environment, cell)
-    reduce({environment, index + 1}, fun.(status, acc), fun)
+    cas = cell_and_status(environment, index)
+    reduce({environment, index + 1}, fun.(cas, acc), fun)
   end
 
   def slice(%Environment{height: height, width: width} = environment) do
     slicer = fn start, length ->
       for index <- start..(start + length - 1) do
-        cell = build_cell(environment, index)
-        Environment.status_at(environment, cell)
+        cell_and_status(environment, index)
       end
     end
 
     {:ok, height * width, slicer}
   end
 
-  defp build_cell(%Environment{height: height, width: width}, index) do
-    {rem(index, width), div(index, height)}
+  defp cell_and_status(%Environment{height: height, width: width} = environment, index) do
+    cell = {rem(index, width), div(index, height)}
+    status = Environment.get_status(environment, cell)
+    {cell, status}
   end
 end
