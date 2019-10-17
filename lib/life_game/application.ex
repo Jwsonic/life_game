@@ -9,9 +9,9 @@ defmodule LifeGame.Application do
     # List all child processes to be supervised
     children = [
       # Start the Ecto repository
-      LifeGame.Repo,
+      # LifeGame.Repo,
       # Start the endpoint when the application starts
-      LifeGameWeb.Endpoint
+      # LifeGameWeb.Endpoint
       # Starts a worker by calling: LifeGame.Worker.start_link(arg)
       # {LifeGame.Worker, arg},
     ]
