@@ -22,7 +22,7 @@
         # In the latter case `**/*.{ex,exs}` will be used.
         #
         included: ["lib/", "src/", "test/", "web/", "apps/"],
-        excluded: [~r"/_build/", ~r"/deps/", ~r"/node_modules/", ~r"/elixir_ls/"]
+        excluded: [~r"/_build/", ~r"/deps/", ~r"/node_modules/", ~r"/elixir_ls/", "test/support"]
       },
       #
       # Load and configure plugins here:
