@@ -54,16 +54,25 @@ defmodule LifeGame.Environment do
   end
 
   @doc """
-  Updates the given cell with to the given status. Only accepts cells that are within the valid
-  bounds of the `LifeGame.Environment`.
+  Updates the given cell with to the given status. If the cell is not in the `LifeGame.Environment`
+  no update is made.
   """
   @spec put_status(Environment.t(), cell(), status()) :: Environment.t()
   def put_status(
-        %Environment{cells: cells, height: height, width: width} = environment,
+        %Environment{height: height, width: width} = environment,
         {x, y} = cell,
         status
       )
-      when is_status(status) and is_cell(cell) and x < width and y < height do
+      when is_status(status) and is_cell(cell) and (x < 0 or x >= width or y < 0 or y >= height) do
+    environment
+  end
+
+  def put_status(
+        %Environment{cells: cells} = environment,
+        cell,
+        status
+      )
+      when is_status(status) and is_cell(cell) do
     new_cells =
       case status do
         @dead -> Map.delete(cells, cell)
