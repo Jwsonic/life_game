@@ -7,9 +7,6 @@
 # General application configuration
 use Mix.Config
 
-config :life_game,
-  ecto_repos: [LifeGame.Repo]
-
 # Configures the endpoint
 config :life_game, LifeGameWeb.Endpoint,
   url: [host: "localhost"],
