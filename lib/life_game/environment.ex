@@ -1,6 +1,6 @@
 defmodule LifeGame.Environment do
   @moduledoc """
-  Environment represents and environment or grid of cells in a game of life.
+  `LifeGame.Environment` represents and environment or grid of cells in a game of life.
   """
   defstruct cells: %{}, height: 0, width: 0
 
@@ -21,31 +21,74 @@ defmodule LifeGame.Environment do
   defguardp is_status(status) when status in [@alive, @dead]
 
   @doc """
-  Creates and returns a new Environment with the given width and height.
+  Creates and returns a new `LifeGame.Environment` with the given width and height.
   """
-  @spec new(non_neg_integer(), non_neg_integer()) :: Environment.t()
-  def new(width, height) do
-    %Environment{width: width, height: height}
+  @spec new(non_neg_integer(), non_neg_integer(), list(cell()) | nil) :: Environment.t()
+  def new(height, width, cells \\ []) do
+    new_cells = Enum.reduce(cells, %{}, &Map.put(&2, &1, @alive))
+    %Environment{cells: new_cells, height: height, width: width}
   end
 
   @doc """
-  Evaluates the given `Environment` and returns the next iteration.
+  Evaluates the given `LifeGame.Environment` and returns the next iteration. It uses the rules
+  at https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life#Rules.
   """
   @spec tick(Environment.t()) :: Environment.t()
-  def tick(seed) do
-    Enum.reduce(seed, seed, fn {{cell, status}, environment} ->
-      # TODO: start here
-      environment
+  def tick(%Environment{} = seed) do
+    Enum.reduce(seed, seed, fn {cell, status}, environment ->
+      case {status, neighbor_count(seed, cell)} do
+        {@alive, count} when count < 2 -> put_status(environment, cell, @dead)
+        {@alive, count} when count > 3 -> put_status(environment, cell, @dead)
+        {@dead, count} when count == 3 -> put_status(environment, cell, @alive)
+        {_status, _count} -> environment
+      end
     end)
   end
 
+  @doc """
+  Returns the status for the given cell. Note: if a cell that is not valid for the given
+  `LifeGame.Environment` is passed, this function will return `@dead`.
+  """
   def get_status(%Environment{cells: cells}, cell) when is_cell(cell) do
     Map.get(cells, cell, @dead)
   end
 
-  def put_status(%Environment{cells: cells} = environment, cell, status)
-      when is_cell(cell) and is_status(status) do
-    %{environment | cells: Map.put(cells, cell, status)}
+  @doc """
+  Updates the given cell with to the given status. Only accepts cells that are within the valid
+  bounds of the `LifeGame.Environment`.
+  """
+  @spec put_status(Environment.t(), cell(), status()) :: Environment.t()
+  def put_status(
+        %Environment{cells: cells, height: height, width: width} = environment,
+        {x, y} = cell,
+        status
+      )
+      when is_status(status) and is_cell(cell) and x < width and y < height do
+    new_cells =
+      case status do
+        @dead -> Map.delete(cells, cell)
+        @alive -> Map.put(cells, cell, @alive)
+      end
+
+    %{environment | cells: new_cells}
+  end
+
+  @doc """
+  Returns the number of `@alive` neighbors the given cell has.
+  """
+  def neighbor_count(%Environment{} = environment, {x, y} = cell) when is_cell(cell) do
+    [
+      {x - 1, y},
+      {x + 1, y},
+      {x, y - 1},
+      {x, y + 1},
+      {x + 1, y + 1},
+      {x + 1, y - 1},
+      {x - 1, y + 1},
+      {x - 1, y - 1}
+    ]
+    |> Enum.map(&get_status(environment, &1))
+    |> Enum.sum()
   end
 end
 
@@ -110,6 +153,7 @@ defimpl Enumerable, for: LifeGame.Environment do
     {:ok, height * width, slicer}
   end
 
+  # Helper function to return the cell coordiantes and their status as a tuple
   defp cell_and_status(%Environment{height: height, width: width} = environment, index) do
     cell = {rem(index, width), div(index, height)}
     status = Environment.get_status(environment, cell)
